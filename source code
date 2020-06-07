@@ -1,0 +1,237 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> dis;
+bool cmp(const int &a, const int &b)
+{
+    return dis[a] > dis[b];
+}
+
+void bfs(vector<vector<int>> &Graph, vector<int> &ans, int V, int source, int k)
+{
+    queue<pair<int, int>> q;
+    vector<bool> visited(V + 5);
+    visited[source] = true;
+    q.push({source, 0});
+    while (!q.empty())
+    {
+        auto p = q.front();
+        q.pop();
+        if (p.second == k)
+            ans.push_back(p.first);
+        for (auto v : Graph[p.first])
+            if (!visited[v])
+            {
+                visited[v] = true;
+                q.push({v, p.second + 1});
+            }
+    }
+}
+
+bool dfs(int i, int j, int n, vector<int> &x, vector<int> &y, vector<vector<bool>> &visited, vector<string> &Maze, deque<pair<int, int>> &path)
+{
+    visited[i][j] = true;
+    for (int dir = 0; dir < 4; ++dir)
+    {
+        int newI = i + x[dir];
+        int newJ = j + y[dir];
+        if (newI >= 0 && newI < n && newJ >= 0 && newJ < n && Maze[newI][newJ] == '0' && !visited[newI][newJ])
+            if (dfs(newI, newJ, n, x, y, visited, Maze, path))
+            {
+                path.push_front({i, j});
+                return true;
+            }
+    }
+    if (i == n - 1 && j == n - 1)
+    {
+        path.push_front({i, j});
+        return true;
+    }
+    return false;
+}
+
+int dijkstra(vector<vector<pair<int, int>>> &Graph, deque<int> &path, int n, int M, int source, int destination)
+{
+    dis.clear(), dis.resize(n + 5, INT_MAX);
+    vector<int> heap, pre(n + 5);
+    dis[source] = 0, pre[source] = -1;
+    for (int i = 1; i <= n; ++i)
+        heap.push_back(i);
+    make_heap(heap.begin(), heap.end(), cmp);
+    while (!heap.empty())
+    {
+        int minimum = heap.front();
+        if (minimum == destination)
+        {
+            int ver = destination;
+            while (ver != -1)
+            {
+                path.push_front(ver);
+                ver = pre[ver];
+            }
+            return dis[destination];
+        }
+        for (auto v : Graph[minimum])
+        {
+            int cost = dis[minimum] + v.second;
+            if (minimum != source)
+                cost += M;
+            if (cost < dis[v.first])
+            {
+                dis[v.first] = cost;
+                pre[v.first] = minimum;
+            }
+        }
+        pop_heap(heap.begin(), heap.end(), cmp);
+        heap.pop_back();
+    }
+    return -1;
+}
+
+void kAway()
+{
+    int V, E, u, v, source, k;
+    cout << "Please enter the number of vertices: ";
+    cin >> V;
+    cout << "Please enter the number of edges: ";
+    cin >> E;
+    vector<vector<int>> Graph(V + 1);
+    vector<int> ans;
+    if (E)
+        cout << "Please enter " << E << " edge(s) in the form (u v):\n";
+    while (E--)
+    {
+        cin >> u >> v;
+        Graph[u].push_back(v);
+        Graph[v].push_back(u);
+    }
+    cout << "Please enter the starting vertex: ";
+    cin >> source;
+    cout << "Please enter k: ";
+    cin >> k;
+    bfs(Graph, ans, V, source, k);
+    if (!ans.size())
+        cout << "There doesn't exist any vertex with distance " << k << " from vertex " << source;
+    else
+    {
+        cout << "Vertex/Vertices with distance " << k << " from vertex " << source << " is/are: ";
+        for (auto e : ans)
+            cout << e << " ";
+    }
+    cout << "\n\n";
+}
+
+void mazeRunner()
+{
+    int n;
+    char c;
+    string str;
+    vector<string> Maze;
+    deque<pair<int, int>> path;
+    cout << "Please enter N: ";
+    cin >> n;
+    cout << "Please enter the maze:\n";
+    vector<vector<bool>> visited(n, vector<bool>(n));
+    for (int i = 0; i < n; ++i)
+    {
+        string str = "";
+        for (int i = 0; i < n; ++i)
+        {
+            cin >> c;
+            str += c;
+        }
+        Maze.push_back(str);
+    }
+    vector<int> x = {1, 0, -1, 0}, y = {0, 1, 0, -1};
+    if (Maze[0][0] == '1' || Maze[n - 1][n - 1] == '1' || !dfs(0, 0, n, x, y, visited, Maze, path))
+        cout << "No path found";
+    else
+    {
+        cout << "Path: ";
+        for (auto itr = path.begin(); itr != path.end(); ++itr)
+        {
+            cout << "(" << (*itr).first << "," << (*itr).second << ")";
+            if (itr + 1 != path.end())
+                cout << ",";
+        }
+    }
+    cout << "\n\n";
+}
+
+void minimumCostRoute()
+{
+    int n, m, M, v1, v2, time, cost, totCost, totTime, source, destination, res;
+    cout << "Please enter M: ";
+    cin >> M;
+    cout << "Please enter the number of cities: ";
+    cin >> n;
+    cout << "Please enter the number of routes: ";
+    cin >> m;
+    vector<vector<pair<int, int>>> Graph(n + 5);
+    deque<int> path;
+    map<pair<int, int>, int> t;
+    cout << "Please enter " << m << " lines in this form -> source destination time cost\n";
+    while (m--)
+    {
+        cin >> v1 >> v2 >> time >> cost;
+        totCost = cost + time * M;
+        Graph[v1].push_back({v2, totCost});
+        Graph[v2].push_back({v1, totCost});
+        if (v1 > v2)
+            swap(v1, v2);
+        t[{v1, v2}] = time;
+    }
+    cout << "Please enter source city: ";
+    cin >> source;
+    cout << "Please enter destination city: ";
+    cin >> destination;
+    totTime = 0;
+    res = dijkstra(Graph, path, n, M, source, destination);
+    if (res == -1)
+        cout << "Can't reach that destination";
+    else
+    {
+        cout << "The route with minimum cost is ";
+        for (int i = 0; i < path.size(); ++i)
+        {
+            cout << path[i];
+            if (i != path.size() - 1)
+            {
+                cout << " -> ";
+                totTime += t[{min(path[i], path[i + 1]), max(path[i], path[i + 1])}];
+            }
+        }
+        totTime += max((int)path.size() - 2, 0);
+        cout << "\nTotal time: " << totTime << " hours"
+             << "\nTotal cost: " << res << "$";
+    }
+    cout << "\n\n";
+}
+
+int main()
+{
+    int num;
+    while (true)
+    {
+        cout << "1. People k vertices away\n";
+        cout << "2. Maze runner\n";
+        cout << "3. Minimum cost route\n";
+        cout << "4. Exit\n";
+        cout << "Please enter a number to continue: ";
+        cin >> num;
+        switch (num)
+        {
+        case 1:
+            kAway();
+            break;
+        case 2:
+            mazeRunner();
+            break;
+        case 3:
+            minimumCostRoute();
+            break;
+        default:
+            exit(0);
+        }
+    }
+}
